@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { CheckCircle2, Zap, Menu, X, Plus, Trash2, Edit2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { CheckCircle2, Zap, Menu, X, Plus, Trash2, Edit2, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   BarChart,
@@ -18,57 +18,90 @@ import {
 } from "recharts"
 import { useSelector } from "react-redux"
 import type { RootState } from "@/store/store"
+import { CreateTask, findAllUserTask } from "@/service/Task"
+import { toast } from "react-toastify"
+import { handleApiError } from "@/utils/HandleApiError"
+import { socket } from "@/utils/socket"
+
+interface Task {
+  id: number | string
+  _id?: string
+  title: string
+  status: "pending" | "completed"
+  priority?: string
+  dueDate?: string
+  userId?: string
+}
 
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  const [tasks, setTasks] = useState([
+  const [tasks, setTasks] = useState<Task[]>([
     { id: 1, title: "Design new dashboard", status: "completed", priority: "high", dueDate: "2025-01-15" },
     { id: 2, title: "Review team proposals", status: "completed", priority: "medium", dueDate: "2025-01-10" },
     { id: 3, title: "Update documentation", status: "pending", priority: "medium", dueDate: "2025-01-20" },
-    { id: 4, title: "Fix bug in authentication", status: "in-progress", priority: "high", dueDate: "2025-01-12" },
+    { id: 4, title: "Fix bug in authentication", status: "pending", priority: "high", dueDate: "2025-01-12" },
     { id: 5, title: "Plan Q2 roadmap", status: "pending", priority: "low", dueDate: "2025-02-01" },
   ])
   const [newTaskTitle, setNewTaskTitle] = useState("")
-  const [editingId, setEditingId] = useState(null)
+  const [editingId, setEditingId] = useState<number | string | null>(null)
   const [editingTitle, setEditingTitle] = useState("")
-    
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1)
+  const [tasksPerPage] = useState(5)
 
-  const user = useSelector((state:RootState)=> state.user);
-  console.log('redux user',user);
+  const user = useSelector((state: RootState) => state.user.user)
+  const userId = user?._id as string
 
-  const addTask = () => {
-    if (newTaskTitle.trim()) {
-      setTasks([ 
-        ...tasks,
-        {
-          id: Math.max(...tasks.map((t) => t.id), 0) + 1,
-          title: newTaskTitle,
-          status: "pending",
-          priority: "medium",
-          dueDate: new Date().toISOString().split("T")[0],
-        },
-      ])
-      setNewTaskTitle("")
+  const fetchUserTask = async () => {
+    try {
+      const result = await findAllUserTask(userId)
+      console.log('user task', result.data)
+      setTasks(result?.data)
+    } catch (error) {
+      toast.error(handleApiError(error))
     }
   }
 
-  const deleteTask = (id) => {
-    setTasks(tasks.filter((t) => t.id !== id))
+  useEffect(() => {
+    if (userId) fetchUserTask()
+  }, [userId])
+
+  const addTask = async () => {
+    try {
+      if (!newTaskTitle) return
+      const newTask = {
+        title: newTaskTitle,
+        status: 'pending' as const
+      }
+      const result = await CreateTask(userId, newTask)
+      toast.success(result?.data?.msg)
+      setNewTaskTitle("")
+      setCurrentPage(1) // Reset to first page when adding new task
+    } catch (error) {
+      toast.error(handleApiError(error))
+    }
   }
 
-  const updateTask = (id, newTitle) => {
+  const deleteTask = (id: number | string) => {
+    setTasks(tasks.filter((t) => t.id !== id))
+    // Adjust current page if needed
+    const newTotalPages = Math.ceil((tasks.length - 1) / tasksPerPage)
+    if (currentPage > newTotalPages && newTotalPages > 0) {
+      setCurrentPage(newTotalPages)
+    }
+  }
+
+  const updateTask = (id: number | string, newTitle: string) => {
     setTasks(tasks.map((t) => (t.id === id ? { ...t, title: newTitle } : t)))
     setEditingId(null)
   }
 
-  const toggleTaskStatus = (id) => {
+  const toggleTaskStatus = (id: number | string) => {
     setTasks(
       tasks.map((t) => {
         if (t.id === id) {
-          const statuses = ["pending", "in-progress", "completed"]
-          const currentIndex = statuses.indexOf(t.status)
-          return { ...t, status: statuses[(currentIndex + 1) % statuses.length] }
+          return { ...t, status: t.status === "pending" ? "completed" : "pending" as const }
         }
         return t
       }),
@@ -78,11 +111,9 @@ export default function Home() {
   // Analytics data
   const completedTasks = tasks.filter((t) => t.status === "completed").length
   const pendingTasks = tasks.filter((t) => t.status === "pending").length
-  const inProgressTasks = tasks.filter((t) => t.status === "in-progress").length
 
   const analyticsData = [
     { name: "Completed", value: completedTasks, fill: "#10b981" },
-    { name: "In Progress", value: inProgressTasks, fill: "#3b82f6" },
     { name: "Pending", value: pendingTasks, fill: "#f59e0b" },
   ]
 
@@ -96,7 +127,25 @@ export default function Home() {
     { day: "Sun", completed: 3, pending: 4 },
   ]
 
-  
+  // Pagination calculations
+  const indexOfLastTask = currentPage * tasksPerPage
+  const indexOfFirstTask = indexOfLastTask - tasksPerPage
+  const currentTasks = tasks.slice(indexOfFirstTask, indexOfLastTask)
+  const totalPages = Math.ceil(tasks.length / tasksPerPage)
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
+
+  useEffect(() => {
+    socket.on('taskCreated', (task: Task) => {
+      if (task.userId === userId) {
+        setTasks((prev) => [...prev, task])
+      }
+    })
+
+    return () => {
+      socket.off('taskCreated')
+    }
+  }, [userId])
 
   return (
     <div className="min-h-screen bg-white text-foreground">
@@ -112,8 +161,8 @@ export default function Home() {
             </div>
 
             <div className="hidden md:flex items-center gap-4">
-                <Button variant="ghost">Log in</Button>
-              </div>
+              <Button variant="ghost">Log in</Button>
+            </div>
 
             {/* Mobile Menu Button */}
             <button className="md:hidden p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -135,6 +184,7 @@ export default function Home() {
           )}
         </div>
       </nav>
+
       <section id="tasks" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12 space-y-4">
@@ -168,7 +218,7 @@ export default function Home() {
 
                 {/* Task List Items */}
                 <div className="space-y-2">
-                  {tasks.map((task) => (
+                  {currentTasks.map((task) => (
                     <div
                       key={task.id}
                       className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition group"
@@ -178,12 +228,10 @@ export default function Home() {
                         className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition ${
                           task.status === "completed"
                             ? "bg-green-500 border-green-500"
-                            : task.status === "in-progress"
-                              ? "bg-blue-500 border-blue-500"
-                              : "border-gray-300 hover:border-blue-500"
+                            : "border-gray-300 hover:border-blue-500"
                         }`}
                       >
-                        {(task.status === "completed" || task.status === "in-progress") && (
+                        {task.status === "completed" && (
                           <CheckCircle2 className="w-4 h-4 text-white" />
                         )}
                       </button>
@@ -227,15 +275,57 @@ export default function Home() {
                   ))}
                 </div>
 
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4">
+                    <div className="text-sm text-gray-600">
+                      Showing {indexOfFirstTask + 1} to {Math.min(indexOfLastTask, tasks.length)} of {tasks.length} tasks
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => paginate(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      
+                      <div className="flex gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
+                          <button
+                            key={number}
+                            onClick={() => paginate(number)}
+                            className={`px-3 py-1 rounded text-sm font-medium transition ${
+                              currentPage === number
+                                ? "bg-blue-600 text-white"
+                                : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
+                            }`}
+                          >
+                            {number}
+                          </button>
+                        ))}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => paginate(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Task Stats */}
-                <div className="mt-6 pt-6 border-t border-gray-200 grid grid-cols-3 gap-4">
+                <div className="mt-6 pt-6 border-t border-gray-200 grid grid-cols-2 gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-green-600">{completedTasks}</div>
                     <div className="text-sm text-gray-600">Completed</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">{inProgressTasks}</div>
-                    <div className="text-sm text-gray-600">In Progress</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-yellow-600">{pendingTasks}</div>
@@ -285,7 +375,7 @@ export default function Home() {
                 <div className="text-sm opacity-90 mb-2">Total Tasks</div>
                 <div className="text-3xl font-bold mb-4">{tasks.length}</div>
                 <div className="text-sm opacity-75">
-                  {Math.round((completedTasks / tasks.length) * 100)}% completion rate
+                  {tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0}% completion rate
                 </div>
               </div>
             </div>

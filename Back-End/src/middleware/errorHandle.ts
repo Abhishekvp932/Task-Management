@@ -2,7 +2,7 @@ import { ErrorRequestHandler } from 'express';
 import { HttpStatus } from '../utils/httpsStatus';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
-  
+  console.log(err);
   const statusCode = err.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
   const message = err.message || 'Internal Server Error';
 

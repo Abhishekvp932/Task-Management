@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"
-import { CheckCircle2, Eye, EyeOff } from "lucide-react"
+import { Input } from "@/components/ui/input";
+import { CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Login } from "@/service/User";
 import { toast } from "react-toastify";
@@ -10,24 +10,30 @@ import { handleApiError } from "@/utils/HandleApiError";
 import { useDispatch } from "react-redux";
 import { setUser } from "@/features/userSlice";
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState("")
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('');
-     try {
-        const data = await Login(email,password);
-        console.log('login response',data);
-        dispatch(setUser(data?.data));
-        navigate('/home');
-     } catch (error) {
-        toast.error(handleApiError(error));
-     }
-  }
+    e.preventDefault();
+    setError("");
+    try {
+      const data = await Login(email, password);
+      console.log("login response", data);
+      dispatch(
+        setUser({
+          _id: data?.data?._id,
+          name: data?.data?.name,
+          email: data?.data?.email,
+        })
+      );
+      navigate("/home");
+    } catch (error) {
+      toast.error(handleApiError(error));
+    }
+  };
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -52,20 +58,26 @@ export default function LoginPage() {
               Organize your work. Conquer your goals.
             </h1>
             <p className="text-lg opacity-90 leading-relaxed max-w-sm">
-              TaskFlow helps you manage your tasks efficiently with intuitive features designed for productivity and
-              collaboration.
+              TaskFlow helps you manage your tasks efficiently with intuitive
+              features designed for productivity and collaboration.
             </p>
           </div>
         </div>
 
-        <p className="text-sm opacity-75 relative z-10">© 2025 TaskFlow. All rights reserved.</p>
+        <p className="text-sm opacity-75 relative z-10">
+          © 2025 TaskFlow. All rights reserved.
+        </p>
       </div>
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-8">
         <Card className="w-full max-w-md border-border/50 shadow-xl">
           <div className="p-8 space-y-6 sm:p-6">
             <div className="space-y-2">
-              <h2 className="text-3xl font-bold tracking-tight text-foreground">Welcome back</h2>
-              <p className="text-muted-foreground text-base">Sign in to your account to get started</p>
+              <h2 className="text-3xl font-bold tracking-tight text-foreground">
+                Welcome back
+              </h2>
+              <p className="text-muted-foreground text-base">
+                Sign in to your account to get started
+              </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -107,17 +119,22 @@ export default function LoginPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </div>
-              <Button type="submit" className="w-full">
-                
-              </Button>
+              <Button type="submit" className="w-full"></Button>
 
               <p className="text-center text-sm text-muted-foreground">
                 Don&apos;t have an account?{" "}
-                <Link to="/signup" className="text-primary hover:underline font-medium">
+                <Link
+                  to="/signup"
+                  className="text-primary hover:underline font-medium"
+                >
                   Sign up
                 </Link>
               </p>
@@ -126,5 +143,5 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
