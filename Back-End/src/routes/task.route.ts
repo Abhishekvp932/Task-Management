@@ -17,4 +17,12 @@ router.route('/create/:userId')
 router.route('/task/:userId')
 .get(taskController.findUserTask.bind(taskController));
 
+router.route('/update/:taskId')
+.put(taskController.updateTask.bind(taskController));
+
+router.route('/delete/:taskId')
+.delete(taskController.deleteTask.bind(taskController));
+
+router.route('/change-status/:taskId')
+.patch(taskController.changeTaskStatus.bind(taskController));
 export default router;

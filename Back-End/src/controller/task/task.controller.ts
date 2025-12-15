@@ -26,4 +26,36 @@ export class TaskController implements ITaskController{
             next(error)
         }
     }
+    async updateTask(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const {taskId} = req.params;
+            const {title} = req.body;
+            console.log('update task request is comming....',taskId);
+            const result = await this._taskService.updateTask(taskId,title);
+            res.status(HttpStatus.OK).json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+    
+    async deleteTask(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+           
+            const {taskId} = req.params;
+            const result = await this._taskService.deleteTask(taskId);
+            res.status(HttpStatus.OK).json(result);
+            return
+        } catch (error) {
+            next(error);
+        }
+    }
+    async changeTaskStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const {taskId} = req.params;
+            const result = await this._taskService.changeTaskStatus(taskId);
+            res.status(HttpStatus.OK).json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
 }
