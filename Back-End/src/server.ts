@@ -12,7 +12,7 @@ const app:Application = express();
 
 
 const corsOperation = {
-  origin: "http://localhost:5173",
+  origin: "https://task-management-frontend-puce-beta.vercel.app",
   credentials: true ,
 };
 
