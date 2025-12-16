@@ -25,14 +25,14 @@ export class UserController implements IUserController {
       res.cookie("accessToken", result.accessToken, {
         httpOnly: true,
         secure: true,
-        sameSite: "lax",
+        sameSite: "none",
         maxAge: Number(process.env.ACCESS_TOKEN_EXPIRE_TIME) * 1000,
       });
       console.log("Cookie Set AccessToken Done");
       res.cookie("refreshToken", result.refreshToken, {
         httpOnly: true,
-        secure: false,
-        sameSite: "lax",
+        secure: true,
+        sameSite: "none",
         maxAge: Number(process.env.REFRESH_TOKEN_EXPIRE_TIME) * 1000,
       });
       res.status(HttpStatus.OK).json(result.user);

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type React from "react"
 
 import { Card } from "@/components/ui/card"
@@ -9,6 +9,8 @@ import { Link, useNavigate } from "react-router-dom"
 import { Signup } from "@/service/User"
 import {toast,ToastContainer} from 'react-toastify';
 import { handleApiError } from "@/utils/HandleApiError"
+import { useSelector } from "react-redux"
+import type { RootState } from "@/store/store"
 export default function SignupPage() {
   const [form, setForm] = useState({
     fullName: "",
@@ -25,7 +27,17 @@ export default function SignupPage() {
 
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const user = useSelector((state:RootState)=> state.user.user);
+
+
   const navigate = useNavigate();
+
+    useEffect(()=>{
+    if(user){
+      navigate('/home');
+    }
+  },[user]);
+
   const validateField = (name: string, value: string) => {
     let err = ""
 

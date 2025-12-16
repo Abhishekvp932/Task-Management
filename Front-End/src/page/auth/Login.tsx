@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,15 +7,25 @@ import { Link, useNavigate } from "react-router-dom";
 import { Login } from "@/service/User";
 import { toast } from "react-toastify";
 import { handleApiError } from "@/utils/HandleApiError";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setUser } from "@/features/userSlice";
+import type { RootState } from "@/store/store";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const user = useSelector((state:RootState)=>state.user.user)
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+
+  useEffect(()=>{
+    if(user){
+      navigate('/home');
+    }
+  },[user]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");

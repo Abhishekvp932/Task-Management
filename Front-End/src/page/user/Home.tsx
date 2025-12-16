@@ -36,6 +36,7 @@ import {
 import { toast, ToastContainer } from "react-toastify";
 import { handleApiError } from "@/utils/HandleApiError";
 import { socket } from "@/utils/socket";
+import { useNavigate } from "react-router-dom";
 
 type TaskStatus = "pending" | "completed";
 
@@ -74,8 +75,15 @@ export default function Home() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-
+  
   const tasksPerPage = 5;
+   const navigate = useNavigate();
+
+useEffect(()=>{
+  if(!user){
+    navigate('/');
+  }
+},[user]);
 
 useEffect(() => {
   if (!userId) return;
