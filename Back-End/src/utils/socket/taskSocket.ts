@@ -6,7 +6,7 @@ let io: Server;
 export const initSocket = (server: HttpServer) => {
   io = new Server(server, {
     cors: {
-      origin: "https://task-management-frontend-xi.vercel.app",
+      origin: "https://taskmanagement-eight-mu.vercel.app",
       credentials: true,
     },
   });
