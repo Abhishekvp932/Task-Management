@@ -59,3 +59,13 @@ export const changeStatus = async (taskId:string)=>{
         throw error;
     }
 }
+
+export const getUserDashboard = async (userId:string)=>{
+    try {
+        const response = await api.get(API_ROUTES.getUserDashboard(userId))
+        return response;
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+}

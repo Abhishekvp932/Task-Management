@@ -25,4 +25,7 @@ router.route('/delete/:taskId')
 
 router.route('/change-status/:taskId')
 .patch(taskController.changeTaskStatus.bind(taskController));
+
+router.route('/dashboard/:userId')
+.get(taskController.getDashboard.bind(taskController));
 export default router;

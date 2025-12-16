@@ -4,6 +4,7 @@ import { ITaskService } from "../../interface/task/ITaskService";
 import { IUserRepository } from "../../interface/user/IUserRepository";
 import { getIO } from "../../utils/socket/taskSocket";
 import { TaskTypes } from "../../types/taskType";
+import { ITaskDashboardAggregation } from "../../types/dashboardTypes";
 
 export class TaskService implements ITaskService {
   constructor(
@@ -105,5 +106,16 @@ export class TaskService implements ITaskService {
       userId: updatedTask.userId.toString(),
     });
     return { msg: "status changed" };
+  }
+
+  async getDashbaord(userId: string): Promise<ITaskDashboardAggregation> {
+      const user = await this._userRepository.findById(userId);
+
+      if(!user){
+        throw new Error('User Not found');
+      }
+      const dashboardDatas = await this._taskRepository.findDashboardData(userId);
+
+      return dashboardDatas;
   }
 }

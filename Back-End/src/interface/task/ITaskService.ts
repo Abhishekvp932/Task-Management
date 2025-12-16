@@ -1,3 +1,4 @@
+import { ITaskDashboardAggregation } from "../../types/dashboardTypes";
 import { TaskTypes } from "../../types/taskType"
 
 export interface ITaskService {
@@ -6,4 +7,5 @@ export interface ITaskService {
     updateTask(taskId:string,title:string):Promise<{msg:string}>;
     deleteTask(taskId:string):Promise<{msg:string}>;
     changeTaskStatus(taskId:string):Promise<{msg:string}>;
+    getDashbaord(userId:string):Promise<ITaskDashboardAggregation>;
 }

@@ -6,4 +6,5 @@ export interface ITaskController {
     updateTask(req:Request,res:Response,next:NextFunction):Promise<void>;
     deleteTask(req:Request,res:Response,next:NextFunction):Promise<void>;
     changeTaskStatus(req:Request,res:Response,next:NextFunction):Promise<void>;
+    getDashboard(req:Request,res:Response,next:NextFunction):Promise<void>;
 }

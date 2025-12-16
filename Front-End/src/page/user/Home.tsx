@@ -26,52 +26,94 @@ import {
 } from "recharts";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
-import { changeStatus, CreateTask, deleteTask, editTask, findAllUserTask } from "@/service/Task";
+import {
+  changeStatus,
+  CreateTask,
+  deleteTask,
+  editTask,
+  getUserDashboard,
+} from "@/service/Task";
 import { toast, ToastContainer } from "react-toastify";
 import { handleApiError } from "@/utils/HandleApiError";
 import { socket } from "@/utils/socket";
 
+type TaskStatus = "pending" | "completed";
+
 interface Task {
   _id: string;
-  title: string;
-  status: "pending" | "completed" | string;
   userId: string;
+  title: string;
+  status: TaskStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface StatusCount {
+  _id: TaskStatus;
+  count: number;
+}
+
+interface WeeklyData {
+  day: number;
+  completed: number;
+  pending: number;
+}
+
+interface DashboardData {
+  tasks: Task[];
+  statusCount: StatusCount[];
+  weeklyData: WeeklyData[];
 }
 
 export default function Home() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingTitle, setEditingTitle] = useState("");
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const tasksPerPage = 5;
-
   const user = useSelector((state: RootState) => state.user.user);
   const userId = user?._id as string;
 
-  const fetchUserTask = async () => {
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const tasksPerPage = 5;
+
+useEffect(() => {
+  if (!userId) return;
+
+  let isMounted = true;
+
+  const loadDashboard = async () => {
     try {
-      const res = await findAllUserTask(userId);
-      setTasks(res.data);
+      const res = await getUserDashboard(userId);
+      if (isMounted) {
+        setDashboard(res.data);
+      }
     } catch (error) {
       toast.error(handleApiError(error));
     }
   };
 
-  useEffect(() => {
-    if (userId) fetchUserTask();
-  }, [userId]);
+  loadDashboard();
+
+  socket.on("taskCreated", loadDashboard);
+  socket.on("taskUpdated", loadDashboard);
+  socket.on("taskDeleted", loadDashboard);
+  socket.on("updateStatus", loadDashboard);
+
+  return () => {
+    isMounted = false;
+    socket.off("taskCreated", loadDashboard);
+    socket.off("taskUpdated", loadDashboard);
+    socket.off("taskDeleted", loadDashboard);
+    socket.off("updateStatus", loadDashboard);
+  };
+}, [userId]);
+
 
   const addTask = async () => {
     try {
       if (!newTaskTitle.trim()) return;
-
-      await CreateTask(userId, {
-        title: newTaskTitle,
-        status: "pending",
-      });
-
+      await CreateTask(userId, { title: newTaskTitle, status: "pending" });
       setNewTaskTitle("");
       setCurrentPage(1);
     } catch (error) {
@@ -79,10 +121,10 @@ export default function Home() {
     }
   };
 
-  const completeTask = async(id: string) => {
+  const completeTask = async (id: string) => {
     try {
-      const result = await changeStatus(id);
-      toast.success(result?.msg);
+      const res = await changeStatus(id);
+      toast.success(res.msg);
     } catch (error) {
       toast.error(handleApiError(error));
     }
@@ -90,82 +132,46 @@ export default function Home() {
 
   const updateTask = async (id: string, title: string) => {
     try {
-      console.log('edit id and title',id,title);
-      const result = await editTask(id, title);
+      const res = await editTask(id, title);
       setEditingId(null);
       setEditingTitle("");
-      toast.success(result.msg);
+      toast.success(res.msg);
     } catch (error) {
       toast.error(handleApiError(error));
     }
   };
 
-  const taskDelete = async(id: string) => {
+  const taskDelete = async (id: string) => {
     try {
-      const result = await deleteTask(id);
-      toast.success(result.msg);
+      const res = await deleteTask(id);
+      toast.success(res.msg);
     } catch (error) {
       toast.error(handleApiError(error));
     }
   };
 
-  useEffect(() => {
-    socket.on("taskCreated", (task: Task) => {
-      if (task.userId === userId) {
-        setTasks((prev) => [...prev, task]);
-      }
-    });
-
-    socket.on('taskUpdated',(updatedTask:Task)=>{
-         setTasks((prev) =>
-        prev.map((t) =>
-        t._id === updatedTask._id ? updatedTask : t
-      )
-    );
-    });
-
-    socket.on('taskDeleted',({taskId})=>{
-       setTasks((prev)=> prev.filter((t)=> t._id !== taskId));
-    });
-
-  socket.on("updateStatus", (updatedTask) => {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t._id === updatedTask._id ? updatedTask : t
-      )
-    );
-  });
-
-    return () => {
-      socket.off("taskCreated");
-      socket.off('taskUpdated');
-      socket.off('taskDeleted');
-      socket.off('updateStatus');
-    };
-  }, [userId]);
+  const tasks = dashboard?.tasks ?? [];
 
   const indexOfLastTask = currentPage * tasksPerPage;
   const indexOfFirstTask = indexOfLastTask - tasksPerPage;
   const currentTasks = tasks.slice(indexOfFirstTask, indexOfLastTask);
   const totalPages = Math.ceil(tasks.length / tasksPerPage);
 
-  const completedTasks = tasks.filter((t) => t.status === "completed").length;
-  const pendingTasks = tasks.filter((t) => t.status === "pending").length;
+  const analyticsData =
+    dashboard?.statusCount.map((s) => ({
+      name: s._id === "completed" ? "Completed" : "Pending",
+      value: s.count,
+      fill: s._id === "completed" ? "#10b981" : "#f59e0b",
+    })) ?? [];
 
-  const analyticsData = [
-    { name: "Completed", value: completedTasks, fill: "#10b981" },
-    { name: "Pending", value: pendingTasks, fill: "#f59e0b" },
-  ];
+  const dayMap = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  const weeklyData = [
-    { day: "Mon", completed: completedTasks, pending: pendingTasks },
-    { day: "Tue", completed: completedTasks, pending: pendingTasks },
-    { day: "Wed", completed: completedTasks, pending: pendingTasks },
-    { day: "Thu", completed: completedTasks, pending: pendingTasks },
-    { day: "Fri", completed: completedTasks, pending: pendingTasks },
-    { day: "Sat", completed: completedTasks, pending: pendingTasks },
-    { day: "Sun", completed: completedTasks, pending: pendingTasks },
-  ];
+  const weeklyChartData =
+    dashboard?.weeklyData.map((w) => ({
+      day: dayMap[w.day],
+      completed: w.completed,
+      pending: w.pending,
+    })) ?? [];
 
   return (
     <div className="min-h-screen bg-white px-4 pt-24 max-w-5xl mx-auto">
@@ -195,15 +201,13 @@ export default function Home() {
             )}
 
             {editingId === task._id ? (
-              <div className="flex-1 flex items-center gap-2">
+              <div className="flex-1 flex gap-2">
                 <input
                   autoFocus
                   value={editingTitle}
                   onChange={(e) => setEditingTitle(e.target.value)}
                   className="flex-1 border px-2 py-1"
                 />
-
-               
                 <Button
                   size="sm"
                   variant="outline"
@@ -286,7 +290,7 @@ export default function Home() {
         </ResponsiveContainer>
 
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={weeklyData}>
+          <BarChart data={weeklyChartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="day" />
             <YAxis />
@@ -297,7 +301,8 @@ export default function Home() {
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <ToastContainer autoClose = {200}/>
+
+      <ToastContainer autoClose={200} />
     </div>
   );
 }

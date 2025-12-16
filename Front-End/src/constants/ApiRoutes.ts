@@ -5,5 +5,6 @@ export const API_ROUTES = {
     findAllUserTask:(userId:string)=>`/api/task/task/${userId}`,
     updateTask:(taskId:string)=>`/api/task/update/${taskId}`,
     deleteTask:(taskId:string)=>`/api/task/delete/${taskId}`,
-    changeTaskStatus:(taskId:string)=>`/api/task/change-status/${taskId}`
+    changeTaskStatus:(taskId:string)=>`/api/task/change-status/${taskId}`,
+    getUserDashboard:(userId:string)=>`/api/task/dashboard/${userId}`,
 }
