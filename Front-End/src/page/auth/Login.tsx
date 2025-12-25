@@ -137,7 +137,7 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
-              <Button type="submit" className="w-full"></Button>
+              <Button type="submit" className="w-full">Sign in</Button>
 
               <p className="text-center text-sm text-muted-foreground">
                 Don&apos;t have an account?{" "}

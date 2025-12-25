@@ -16,6 +16,11 @@ const corsOperation = {
   credentials: true ,
 };
 
+// const corsOperation = {
+//   origin:'http://localhost:5173',
+//   credentials: true ,
+// };
+
 
 const PORT = 3001;
 app.use(cookieParser());

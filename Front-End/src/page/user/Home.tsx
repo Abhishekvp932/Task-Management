@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Circle,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +25,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
 import {
   changeStatus,
@@ -37,6 +38,7 @@ import { toast, ToastContainer } from "react-toastify";
 import { handleApiError } from "@/utils/HandleApiError";
 import { socket } from "@/utils/socket";
 import { useNavigate } from "react-router-dom";
+import { logout } from "@/features/userSlice";
 
 type TaskStatus = "pending" | "completed";
 
@@ -181,8 +183,22 @@ useEffect(() => {
       pending: w.pending,
     })) ?? [];
 
+
+    const dispatch = useDispatch();
+    const handleLogout = ()=>{
+       dispatch(logout())
+       navigate('/');
+    }
+
   return (
     <div className="min-h-screen bg-white px-4 pt-24 max-w-5xl mx-auto">
+      <div className="absolute top-4 right-4">
+        <Button variant="outline" className="flex items-center gap-2" onClick={handleLogout}>
+          <LogOut className="w-4 h-4" />
+          Logout
+        </Button>
+      </div>
+
       <div className="flex gap-2 mb-6">
         <input
           value={newTaskTitle}
